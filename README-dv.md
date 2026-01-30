@@ -61,6 +61,7 @@ The exploitation leverages a race condition between file upload and validation/c
 <img width="797" height="650" alt="image" src="https://github.com/user-attachments/assets/4f47f1cc-66f7-4d1c-ada6-6d392c2e73de" />
 <img width="868" height="311" alt="image" src="https://github.com/user-attachments/assets/415aa603-7755-40d8-9a25-97f7e1b7cece" />
 <img width="1365" height="734" alt="image" src="https://github.com/user-attachments/assets/aa961478-7ab1-4caa-a069-1ad0e061d660" />
+<img width="1355" height="687" alt="image" src="https://github.com/user-attachments/assets/ae7ac93b-1795-49c6-90f0-52bccc5f3d2a" />
 
 3. **Race Condition Identification**:
    - I discovered that file obfuscation tricks were accepted (200 OK), but appending malicious content to GET requests failed (400 Bad Request).
@@ -68,11 +69,13 @@ The exploitation leverages a race condition between file upload and validation/c
 <img width="1363" height="660" alt="image" src="https://github.com/user-attachments/assets/e1b6282b-51b0-45fc-909c-0bb442a4e381" />
 <img width="1363" height="686" alt="image" src="https://github.com/user-attachments/assets/1ddad1bc-ea8d-4f29-9908-1f2ce974d946" />
 
+
 4. **Automated Exploitation Setup**:
    - Used Turbo Intruder (Burp Suite extension) to test for race conditions.
    - Crafted a Python script to send concurrent requests:
      - **Request 1 (Upload)**: POST request uploading a malicious PHP file (`malicious.php`) containing `<?php system('cat /home/carlos/secret');?>`.
      - **Request 2 (Access)**: Multiple GET requests attempting to access `/files/avatars/malicious.php` immediately after upload.
+<img width="1357" height="731" alt="image" src="https://github.com/user-attachments/assets/d01d01be-fda2-4de3-a91a-8606437cbbef" />
 
 5. **Script Mechanics**:
    ```python
@@ -145,8 +148,11 @@ The exploitation leverages a race condition between file upload and validation/c
 6. **Execution and Success**:
    - The script sends 1 upload request and 5 concurrent access requests.
    - The 'gate' mechanism ensures all requests are queued and released simultaneously, maximizing the race condition window.
-   - Successful exploitation occurred when at least one GET request hit the server before the malicious file was deleted.
-   - Result: Exfiltrated Carlos's secret, solving the lab challenge.
+   - I finally Successfully exploitated the race condition with at least one GET request hit the server before the malicious file was deleted.
+   - Result: I exfiltrated Carlos's secret, proving the race condition via web shell upload.
+<img width="1363" height="732" alt="image" src="https://github.com/user-attachments/assets/3acd50a4-fd74-4483-b0a9-623f4f48c3d1" />
+<img width="913" height="499" alt="image" src="https://github.com/user-attachments/assets/d4fc7d25-c6ef-4beb-b5ea-56417608b79d" />
+<img width="1295" height="614" alt="image" src="https://github.com/user-attachments/assets/03159d1f-7602-4724-aa0a-cfc5a30681a5" />
 
 ### Technical Assessment
 
