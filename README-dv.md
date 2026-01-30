@@ -47,35 +47,41 @@ This creates a window where the malicious file exists in an executable state bef
 The exploitation leverages a race condition between file upload and validation/cleanup. Here's a step-by-step assessment:
 
 1. **Initial Reconnaissance**:
-   - I logged in as a standard user (wiener) and navigated to the account settings page with image upload functionality and observed that the application accepts image files (PNG/JPG) for avatar uploads:
+   - I entered the system with the username of a normal user, which was wiener, and went to the account page where the image upload feature was enabled, and it was clear that the application allows image types for the avatar upload feature:
 <img width="818" height="620" alt="image" src="https://github.com/user-attachments/assets/26ef6658-6418-4630-b626-4f0034bd34b9" />
 <img width="812" height="656" alt="image" src="https://github.com/user-attachments/assets/be2a6aa7-36a6-47b9-b82e-16a0d9e0f602" />
 <img width="1152" height="620" alt="image" src="https://github.com/user-attachments/assets/c6c6e606-1a28-4338-8f7d-61aed6f580ee" />
 <img width="849" height="671" alt="image" src="https://github.com/user-attachments/assets/d4cd51cf-db08-4467-8b7a-b827fee895b7" />
 <img width="391" height="189" alt="image" src="https://github.com/user-attachments/assets/2bd2e790-5c32-4e54-b7c4-ea626640f4d4" />
 <img width="1024" height="654" alt="image" src="https://github.com/user-attachments/assets/45863b66-01ca-4194-b005-aa9bb9e32691" />
-
+<p align="center"></i></p>
+<br><br>
 
 2. **Direct Upload Attempts**:
-   - I then attempted to upload a malicious PHP file directly, which was blocked (403 Forbidden), confirming extension-based filtering and tested bypass techniques such as path traversal and file obfuscation, but these failed or resulted in temporary acceptance without execution.
+   - I attempted to upload a malicious PHP file directly, and it was blocked (403 Forbidden). I also attempted to test bypass techniques such as path traversal and file obfuscation, but these were unsuccessful or resulted in temporary acceptance without execution:
 <img width="797" height="650" alt="image" src="https://github.com/user-attachments/assets/4f47f1cc-66f7-4d1c-ada6-6d392c2e73de" />
 <img width="868" height="311" alt="image" src="https://github.com/user-attachments/assets/415aa603-7755-40d8-9a25-97f7e1b7cece" />
 <img width="1365" height="734" alt="image" src="https://github.com/user-attachments/assets/aa961478-7ab1-4caa-a069-1ad0e061d660" />
 <img width="1355" height="687" alt="image" src="https://github.com/user-attachments/assets/ae7ac93b-1795-49c6-90f0-52bccc5f3d2a" />
+<p align="center"></i></p>
+<br><br>
 
 3. **Race Condition Identification**:
-   - I discovered that file obfuscation tricks were accepted (200 OK), but appending malicious content to GET requests failed (400 Bad Request).
-   - Key insight: The server temporarily saves the image before validation, creating a tiny race window for execution before deletion:
+   - I learned that the file obfuscation tricks were allowed (200 OK), while attempting to add malicious content to the GET requests failed (400 Bad Request).
+   - Key insight: The server stores the image temporarily before validating it, allowing for a small window of execution before the image is deleted:
 <img width="1363" height="660" alt="image" src="https://github.com/user-attachments/assets/e1b6282b-51b0-45fc-909c-0bb442a4e381" />
 <img width="1363" height="686" alt="image" src="https://github.com/user-attachments/assets/1ddad1bc-ea8d-4f29-9908-1f2ce974d946" />
-
+<p align="center"></i></p>
+<br><br>
 
 4. **Automated Exploitation Setup**:
-   - Used Turbo Intruder (Burp Suite extension) to test for race conditions.
-   - Crafted a Python script to send concurrent requests:
-     - **Request 1 (Upload)**: POST request uploading a malicious PHP file (`malicious.php`) containing `<?php system('cat /home/carlos/secret');?>`.
-     - **Request 2 (Access)**: Multiple GET requests attempting to access `/files/avatars/malicious.php` immediately after upload.
+   - I used "Turbo Intruder" (an extension to Burp Suite) to test for race conditions.
+   - Next, I wrote a Python script to make concurrent requests:
+     - **Request 1 (Upload)**: A POST request to upload a malicious PHP file (`malicious.php`) with `<?php system('cat /home/carlos/secret');?>`.
+     - **Request 2 (Access)**: I sent 5 GET requests attempting to access `/files/avatars/malicious.php` immediately after upload.
 <img width="1357" height="731" alt="image" src="https://github.com/user-attachments/assets/d01d01be-fda2-4de3-a91a-8606437cbbef" />
+<p align="center"></i></p>
+<br><br>
 
 5. **Script Mechanics**:
    ```python
@@ -144,15 +150,19 @@ The exploitation leverages a race condition between file upload and validation/c
    def handleResponse(req, interesting):
        table.add(req)
    ```
+<p align="center"></i></p>
+<br><br>
 
 6. **Execution and Success**:
-   - The script sends 1 upload request and 5 concurrent access requests.
+   - The script above sends 1 upload request and 5 concurrent access requests.
    - The 'gate' mechanism ensures all requests are queued and released simultaneously, maximizing the race condition window.
-   - I finally Successfully exploitated the race condition with at least one GET request hit the server before the malicious file was deleted.
-   - Result: I exfiltrated Carlos's secret, proving the race condition via web shell upload.
+   - I finally Successfully exploitated the race condition with at least three GET request hit the server before the malicious file was deleted.
+   - Result: I exfiltrated Carlos's secret, proving the race condition via web shell upload:
 <img width="1363" height="732" alt="image" src="https://github.com/user-attachments/assets/3acd50a4-fd74-4483-b0a9-623f4f48c3d1" />
 <img width="913" height="499" alt="image" src="https://github.com/user-attachments/assets/d4fc7d25-c6ef-4beb-b5ea-56417608b79d" />
 <img width="1295" height="614" alt="image" src="https://github.com/user-attachments/assets/03159d1f-7602-4724-aa0a-cfc5a30681a5" />
+<p align="center"></i></p>
+<br><br>
 
 ### Technical Assessment
 
