@@ -52,15 +52,21 @@ The exploitation leverages a race condition between file upload and validation/c
 <img width="812" height="656" alt="image" src="https://github.com/user-attachments/assets/be2a6aa7-36a6-47b9-b82e-16a0d9e0f602" />
 <img width="1152" height="620" alt="image" src="https://github.com/user-attachments/assets/c6c6e606-1a28-4338-8f7d-61aed6f580ee" />
 <img width="849" height="671" alt="image" src="https://github.com/user-attachments/assets/d4cd51cf-db08-4467-8b7a-b827fee895b7" />
+<img width="391" height="189" alt="image" src="https://github.com/user-attachments/assets/2bd2e790-5c32-4e54-b7c4-ea626640f4d4" />
+<img width="1024" height="654" alt="image" src="https://github.com/user-attachments/assets/45863b66-01ca-4194-b005-aa9bb9e32691" />
 
 
 2. **Direct Upload Attempts**:
-   - Attempted to upload a malicious PHP file directly, which was blocked (403 Forbidden), confirming extension-based filtering.
-   - Tested bypass techniques such as path traversal and file obfuscation, but these failed or resulted in temporary acceptance without execution.
+   - I then attempted to upload a malicious PHP file directly, which was blocked (403 Forbidden), confirming extension-based filtering and tested bypass techniques such as path traversal and file obfuscation, but these failed or resulted in temporary acceptance without execution.
+<img width="797" height="650" alt="image" src="https://github.com/user-attachments/assets/4f47f1cc-66f7-4d1c-ada6-6d392c2e73de" />
+<img width="868" height="311" alt="image" src="https://github.com/user-attachments/assets/415aa603-7755-40d8-9a25-97f7e1b7cece" />
+<img width="1365" height="734" alt="image" src="https://github.com/user-attachments/assets/aa961478-7ab1-4caa-a069-1ad0e061d660" />
 
 3. **Race Condition Identification**:
-   - Discovered that file obfuscation tricks were accepted (200 OK), but appending malicious content to GET requests failed (400 Bad Request).
-   - Key insight: The server temporarily saves the image before validation, creating a tiny race window for execution before deletion.
+   - I discovered that file obfuscation tricks were accepted (200 OK), but appending malicious content to GET requests failed (400 Bad Request).
+   - Key insight: The server temporarily saves the image before validation, creating a tiny race window for execution before deletion:
+<img width="1363" height="660" alt="image" src="https://github.com/user-attachments/assets/e1b6282b-51b0-45fc-909c-0bb442a4e381" />
+<img width="1363" height="686" alt="image" src="https://github.com/user-attachments/assets/1ddad1bc-ea8d-4f29-9908-1f2ce974d946" />
 
 4. **Automated Exploitation Setup**:
    - Used Turbo Intruder (Burp Suite extension) to test for race conditions.
