@@ -47,8 +47,12 @@ This creates a window where the malicious file exists in an executable state bef
 The exploitation leverages a race condition between file upload and validation/cleanup. Here's a step-by-step assessment:
 
 1. **Initial Reconnaissance**:
-   - Logged in as a standard user (wiener) and navigated to the account settings page with image upload functionality.
-   - Observed that the application accepts image files (PNG/JPG) for avatar uploads.
+   - I logged in as a standard user (wiener) and navigated to the account settings page with image upload functionality and observed that the application accepts image files (PNG/JPG) for avatar uploads:
+<img width="818" height="620" alt="image" src="https://github.com/user-attachments/assets/26ef6658-6418-4630-b626-4f0034bd34b9" />
+<img width="812" height="656" alt="image" src="https://github.com/user-attachments/assets/be2a6aa7-36a6-47b9-b82e-16a0d9e0f602" />
+<img width="1152" height="620" alt="image" src="https://github.com/user-attachments/assets/c6c6e606-1a28-4338-8f7d-61aed6f580ee" />
+<img width="849" height="671" alt="image" src="https://github.com/user-attachments/assets/d4cd51cf-db08-4467-8b7a-b827fee895b7" />
+
 
 2. **Direct Upload Attempts**:
    - Attempted to upload a malicious PHP file directly, which was blocked (403 Forbidden), confirming extension-based filtering.
