@@ -48,14 +48,21 @@ How does this theory translate into an exploit? I demonstrate that in the Benchm
 
 I tried to register and observed a strict requirement: the application only accepts @ginandjuice.shop email addresses. Because I didn't have access to an account on that domain, I couldn't retrieve the required confirmation link. While this restriction initially seemed like a dead end, it actually supported my hypothesis: if I couldn't access the token through the intended channel, my remaining path was to subvert the initialization process itself by winning the race during Stage 3 — targeting the record while the token was still uninitialized.
 
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
-![alt text](image-3.png)
+<img width="1362" height="613" alt="image" src="https://github.com/user-attachments/assets/a8cca606-6eb7-46ad-a6c1-51a9403cbbd7" />
+
+<img width="830" height="606" alt="image" src="https://github.com/user-attachments/assets/11de8bd5-f559-4369-baaa-e15d3997ffe6" />
+
+<img width="834" height="619" alt="image" src="https://github.com/user-attachments/assets/1bab6dc8-51e6-4b27-9e46-07f15636fdfa" />
+
+<img width="812" height="620" alt="image" src="https://github.com/user-attachments/assets/64f4f879-75bb-4aa6-8699-2c7d1a54820e" />
+<p align="center"></i></p>
+<br><br>
 
 In Burp's proxy history, while studying the /register endpoint I noticed a request to fetch /resources/static/users.js — a client-side script leaked by the server that I analyzed thoroughly.
 
-![alt text](image-4.png)
+<img width="1029" height="426" alt="image" src="https://github.com/user-attachments/assets/933f7a68-fed5-449b-b694-53895db332ab" />
+<p align="center"></i></p>
+<br><br>
 
 # Leaked client-side code
 
@@ -120,43 +127,53 @@ const confirmEmail = () => {
     container.appendChild(form);
 }
 ```
+<p align="center"></i></p>
+<br><br>
 
 In this snippet I observed that `createRegistrationForm` prepares the registration form and `confirmEmail` generates the confirmation form used after email verification is finished.
 
 As shown in the screenshot, the `token` parameter is missing, so the server returns a 400 Bad Request.
 
-![alt text](image-5.png)
+<img width="1016" height="688" alt="image" src="https://github.com/user-attachments/assets/4f2ec4f3-ee02-4721-a0a7-2ed9be5f9152" />
+<p align="center"></i></p>
+<br><br>
 
 I experimented by submitting a token parameter that was effectively null. Some frameworks translate empty-array-style parameters (for example, `param[] = dog`) into `param = ['dog']`. The server returned a 400 Bad Request with an "Incorrect token: Array" error, as shown:
-
-![alt text](image-7.png)
+<img width="1032" height="668" alt="image" src="https://github.com/user-attachments/assets/2dbcd168-441c-44b5-a1de-86293d1f357b" />
+<p align="center"></i></p>
+<br><br>
 
 I also noticed that submitting an empty token parameter sometimes resulted in a 403 Forbidden response:
 
-![alt text](image-6.png)
+<img width="1017" height="679" alt="image" src="https://github.com/user-attachments/assets/890bbc5b-98dd-459e-b2af-614583a5f8c2" />
+<p align="center"></i></p>
+<br><br>
 
 # Benchmarking and Probing
 
-I moved the POST /register request to Burp Repeater to establish a baseline for a multi-request connection. My initial test bundled the registration and confirmation requests into a single HTTP/2 stream.
+I moved the POST /register request to Burp Repeater to establish a baseline for a multi-request connection. My initial test bundled the registration and confirmation requests into a single HTTP/2 stream. The result was a "partial success": the registration was accepted, but the confirmation returned "Incorrect token: Array." This confirmed that my timing was close enough to hit the backend in one connection, but not perfectly synchronized with the database's uninitialized sub-state.
+<img width="1366" height="683" alt="image" src="https://github.com/user-attachments/assets/708dec55-bf97-4787-af0d-08e12551dc28" />
+<img width="1363" height="701" alt="image" src="https://github.com/user-attachments/assets/cd58eefa-c36c-4afa-904f-983af0d49224" />
+<p align="center"></i></p>
+<br><br>
 
-The result was a "partial success": the registration was accepted, but the confirmation returned "Incorrect token: Array." This confirmed that my timing was close enough to hit the backend in one connection, but not perfectly synchronized with the database's uninitialized sub-state.
+Alternately, I tried sending both requests in parallel to ensure they arrived simultaneously. The outcome matched the single-connection attempt: registration succeeded, but confirmation failed with the same "Incorrect token" error. The breakthrough came when I analyzed response timing. The POST /confirm request completed in 434 ms, while POST /register took 442 ms — an 8 ms difference. That gap is crucial: the confirmation logic was finishing before the registration had reached the "Attribute Initialization" stage. To win the race, I needed to flood the server with confirmation requests or otherwise increase the chance that one lands in that narrow ~8 ms window after the record creation but before the token is written.
 
-Alternately, I tried sending both requests in parallel to ensure they arrived simultaneously. The outcome matched the single-connection attempt: registration succeeded, but confirmation failed with the same "Incorrect token" error.
+<img width="1360" height="680" alt="image" src="https://github.com/user-attachments/assets/23f9403e-ae0e-4e0d-8097-c33041632f5f" />
 
-The breakthrough came when I analyzed response timing. The POST /confirm request completed in 434 ms, while POST /register took 442 ms — an 8 ms difference. That gap is crucial: the confirmation logic was finishing before the registration had reached the "Attribute Initialization" stage. To win the race, I needed to flood the server with confirmation requests or otherwise increase the chance that one lands in that narrow ~8 ms window after the record creation but before the token is written.
-
-![alt text](image-10.png)
-![alt text](image-11.png)
+<img width="1364" height="677" alt="image" src="https://github.com/user-attachments/assets/f8b45569-62af-4723-b1f0-67fcba8f70a5" />
+<p align="center"></i></p>
+<br><br>
 
 # Exploitation (Proof of Concept)
 
-The timing analysis revealed a flaw: the /confirm request finished about 8 ms before registration completed. To successfully exploit the partial construction state, I needed the user to be in the pending state when the confirmation arrived.
-
-To address this, I used Turbo Intruder. Leveraging its gate mechanism and queuing many /confirm requests allowed me to flood the gap and increase the chance that at least one confirmation reached the server in the microseconds after the database record creation but before token initialization.
+The timing analysis revealed a flaw: the /confirm request finished about 8 ms before registration completed. To successfully exploit the partial construction state, I needed the user to be in the pending state when the confirmation arrived. To address this, I used Turbo Intruder. Leveraging its gate mechanism and queuing many /confirm requests allowed me to flood the gap and increase the chance that at least one confirmation reached the server in the microseconds after the database record creation but before token initialization.
 
 I forwarded the POST /register request to Turbo Intruder and used the template `examples/race-single-packet-attack.py`:
+<img width="1359" height="236" alt="image" src="https://github.com/user-attachments/assets/eaa1a70b-cce5-49fe-adbe-4ec0c25dac9a" />
 
-![alt text](image-13.png)
+<img width="1363" height="511" alt="image" src="https://github.com/user-attachments/assets/9f835959-e37b-4d96-90aa-729f07ce602b" />
+
 
 The relevant snippet from the Turbo Intruder template:
 
@@ -206,10 +223,19 @@ Te: trailers
 def handleResponse(req, interesting):
     table.add(req)
 ```
+<p align="center"></i></p>
+<br><br>
 
-Using this template, I synchronized the registration and confirmation requests within a single HTTP/2 connection. By stacking ~40 confirmation attempts behind a single registration request and releasing them simultaneously via the gate, I caught the application in its uninitialized sub-state.
+Using this template, I synchronized the registration and confirmation requests within a single HTTP/2 connection. By stacking 40 confirmation attempts behind a single registration request and releasing them simultaneously via the gate, I caught the application in its uninitialized sub-state.
 
-The attack succeeded: I observed multiple 200 OK responses for the /confirm endpoint, each returning "Account registration for user limpouser6 successful." In the browser I logged in as `limpouser6` with the static password used during registration, then accessed the admin panel and deleted the user `carlos` to confirm the business-logic flaw.
+The attack succeeded: I observed three 200 OK responses for the /confirm endpoint, each returning "Account registration for user limpouser6 successful." In the browser I logged in as `limpouser6` with the static password used during registration, then accessed the admin panel and deleted the user `carlos` to confirm the business-logic flaw:
+<img width="1362" height="690" alt="image" src="https://github.com/user-attachments/assets/d0435539-c386-4ef3-abc1-a9ac5bf24054" />
+<img width="797" height="550" alt="image" src="https://github.com/user-attachments/assets/f9350b5a-6688-4374-aae6-5f88bbbdc2c0" />
+<img width="1285" height="558" alt="image" src="https://github.com/user-attachments/assets/ed9d6c0d-98c5-4d26-84b6-c7cb9c702de5" />
+<img width="682" height="340" alt="image" src="https://github.com/user-attachments/assets/9460c1ac-0b9b-44a2-9364-9f5e02020196" />
+<img width="1363" height="623" alt="image" src="https://github.com/user-attachments/assets/f8dfa3eb-8bbb-426d-9f14-492e2329a67a" />
+<p align="center"></i></p>
+<br><br>
 
 # Impact
 
