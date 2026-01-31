@@ -131,8 +131,9 @@ const confirmEmail = () => {
 <br><br>
 
 In this snippet I observed that `createRegistrationForm` prepares the registration form and `confirmEmail` generates the confirmation form used after email verification is finished.
+My analysis of the client-side confirmEmail function revealed a predictable /confirm endpoint.
 
-As shown in the screenshot, the `token` parameter is missing, so the server returns a 400 Bad Request.
+As shown in the screenshot below, the `token` parameter is missing, so the server returns a 400 Bad Request.
 
 <img width="1016" height="688" alt="image" src="https://github.com/user-attachments/assets/4f2ec4f3-ee02-4721-a0a7-2ed9be5f9152" />
 <p align="center"></i></p>
