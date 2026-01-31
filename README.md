@@ -46,7 +46,7 @@ How does this theory translate into an exploit? I demonstrate that in the Benchm
 
 # Initial Observations
 
-I tried to register and observed a strict requirement: the application only accepts @ginandjuice.shop email addresses. Because I didn't have access to an account on that domain, I couldn't retrieve the required confirmation link. While this restriction initially seemed like a dead end, it actually supported my hypothesis: if I couldn't access the token through the intended channel, my remaining path was to subvert the initialization process itself by winning the race during Stage 3 — targeting the record while the token was still uninitialized.
+I tried to register and observed a strict requirement: the application only accepts @ginandjuice.shop email addresses. Because I didn't have access to an account on that domain, I couldn't retrieve the required confirmation link. While this restriction initially seemed like a dead end, it actually supported my hypothesis: if I couldn't access the token through the intended channel, my remaining path was to subvert the initialization process itself by winning the race during Stage 3 targeting the record while the token was still uninitialized.
 
 <img width="1362" height="613" alt="image" src="https://github.com/user-attachments/assets/a8cca606-6eb7-46ad-a6c1-51a9403cbbd7" />
 
